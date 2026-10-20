@@ -375,7 +375,7 @@
     let isEditing = false;
     let config = { opacity: 1, scale: 1.3, positions: {} };
 
-    const keyMap = { 'ArrowUp': 38, 'ArrowDown': 40, 'ArrowLeft': 37, 'ArrowRight': 39, 'z': 90, 'x': 88, 'c': 67 };
+    const keyMap = { 'w': 87, 's': 83, 'a': 65, 'd': 68, 'z': 90, 'x': 88, 'c': 67 };
     const activeKeys = new Set();
 
     function updateKey(key, isDown) {
@@ -403,25 +403,25 @@
             let angle = Math.atan2(dy, dx) * 180 / Math.PI;
             if (angle < 0) angle += 360;
             const buffer = 28;
-            if (angle > 270 - buffer && angle < 270 + buffer) newKeys.add('ArrowUp');
-            else if (angle > 90 - buffer && angle < 90 + buffer) newKeys.add('ArrowDown');
-            else if (angle > 180 - buffer && angle < 180 + buffer) newKeys.add('ArrowLeft');
-            else if (angle < buffer || angle > 360 - buffer) newKeys.add('ArrowRight');
+            if (angle > 270 - buffer && angle < 270 + buffer) newKeys.add('w');
+            else if (angle > 90 - buffer && angle < 90 + buffer) newKeys.add('s');
+            else if (angle > 180 - buffer && angle < 180 + buffer) newKeys.add('a');
+            else if (angle < buffer || angle > 360 - buffer) newKeys.add('d');
             else {
-                if (dy < 0) newKeys.add('ArrowUp'); if (dy > 0) newKeys.add('ArrowDown');
-                if (dx < 0) newKeys.add('ArrowLeft'); if (dx > 0) newKeys.add('ArrowRight');
+                if (dy < 0) newKeys.add('w'); if (dy > 0) newKeys.add('s');
+                if (dx < 0) newKeys.add('a'); if (dx > 0) newKeys.add('d');
             }
         }
-        ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].forEach(k => updateKey(k, newKeys.has(k)));
+        ['w', 's', 'a', 'd'].forEach(k => updateKey(k, newKeys.has(k)));
     }
 
     dpadZone.addEventListener('touchstart', e => processDpad(e.touches[0].clientX, e.touches[0].clientY), {passive:false});
     dpadZone.addEventListener('touchmove', e => { e.preventDefault(); processDpad(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
-    dpadZone.addEventListener('touchend', () => ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].forEach(k => updateKey(k, false)));
+      dpadZone.addEventListener('touchend', () => ['w', 's', 'a', 'd'].forEach(k => updateKey(k, false)));
 
     dpadZone.addEventListener('mousedown', e => { isMouseDownOnDpad = true; processDpad(e.clientX, e.clientY); });
     window.addEventListener('mousemove', e => { if (isMouseDownOnDpad) processDpad(e.clientX, e.clientY); });
-    window.addEventListener('mouseup', () => { if (isMouseDownOnDpad) { isMouseDownOnDpad = false; ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].forEach(k => updateKey(k, false)); } });
+      window.addEventListener('mouseup', () => { if (isMouseDownOnDpad) { isMouseDownOnDpad = false; ['w', 's', 'a', 'd'].forEach(k => updateKey(k, false)); } });
 
     document.querySelectorAll('.game-btn').forEach(btn => {
         const key = btn.getAttribute('data-key');
@@ -505,6 +505,27 @@
 
     function injectAndLoad(htmlText) {
         const receiver = `<script>
+        const movementKeys = { w: ['ArrowUp', 38], s: ['ArrowDown', 40], a: ['ArrowLeft', 37], d: ['ArrowRight', 39] };
+        const translatedMovementEvents = new WeakSet();
+        function translateMovementKey(event) {
+          const mapping = movementKeys[event.key.toLowerCase()];
+          if (!mapping) return;
+          if (translatedMovementEvents.has(event)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+          }
+          translatedMovementEvents.add(event);
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const translated = new KeyboardEvent(event.type, { key: mapping[0], keyCode: mapping[1], which: mapping[1], bubbles: true });
+          window.dispatchEvent(translated);
+          document.dispatchEvent(translated);
+        }
+        window.addEventListener('keydown', translateMovementKey, true);
+        window.addEventListener('keyup', translateMovementKey, true);
+        document.addEventListener('keydown', translateMovementKey, true);
+        document.addEventListener('keyup', translateMovementKey, true);
             const r = () => { 
                 window.dispatchEvent(new Event('resize'));
                 const canvas = document.querySelector('canvas');
@@ -567,7 +588,7 @@
       const rows = document.querySelectorAll('.row');
       if (rows.length === 0) return;
 
-      if (event.key === 'ArrowUp') {
+      if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') {
         playMove();
         if (selectedChapter === null) {
           selectedChapter = 0;
@@ -580,7 +601,7 @@
           }
           if(rows[selectedChapter]) rows[selectedChapter].classList.add("selected");
         }
-      } else if (event.key === 'ArrowDown') {
+      } else if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') {
         playMove();
         if (selectedChapter === null) {
           selectedChapter = 0;
